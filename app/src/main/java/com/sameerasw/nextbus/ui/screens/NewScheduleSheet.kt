@@ -38,6 +38,7 @@ import androidx.compose.ui.window.DialogProperties
 import com.sameerasw.nextbus.location.LocationData
 import com.sameerasw.nextbus.ui.components.MapLocationPickerDialog
 import java.util.Calendar
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -76,6 +77,7 @@ fun NewScheduleSheet(
     var showRouteSearch by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
     var showLocationPicker by remember { mutableStateOf(false) }
+    var showCustomRouteInput by remember { mutableStateOf(false) }
 
     if (showRouteSearch) {
         RouteSearchScreen(
@@ -84,14 +86,27 @@ fun NewScheduleSheet(
                 showRouteSearch = false
                 onNavigateToRouteSearch()
             },
-            onBack = { showRouteSearch = false }
+            onBack = { showRouteSearch = false },
+            onShowCustomInput = { showCustomRouteInput = true }
+        )
+        return
+    }
+
+    if (showCustomRouteInput) {
+        CustomRouteInputDialog(
+            onSave = { customRoute ->
+                route = customRoute
+                showCustomRouteInput = false
+            },
+            onDismiss = { showCustomRouteInput = false }
         )
         return
     }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
+        scrimColor = androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.32f)
     ) {
         Column(
             modifier = Modifier
@@ -135,12 +150,10 @@ fun NewScheduleSheet(
             OutlinedTextField(
                 value = route,
                 onValueChange = { route = it },
-                label = { Text("Select Route") },
+                label = { Text("Select Route or Enter Custom") },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 8.dp)
-                    .clickable { showRouteSearch = true },
-                readOnly = true,
+                    .padding(vertical = 8.dp),
                 trailingIcon = {
                     Button(onClick = { showRouteSearch = true }, modifier = Modifier.padding(4.dp)) {
                         Text("Browse", style = MaterialTheme.typography.labelSmall)
@@ -171,8 +184,8 @@ fun NewScheduleSheet(
             ) {
                 Button(
                     onClick = {
-                        if (location.latitude != null && location.longitude != null) {
-                            place = location.address ?: String.format("%.4f, %.4f", location.latitude, location.longitude)
+                        if (location.latitude != null && location.longitude != null && location.address != null) {
+                            place = location.address ?: "Current Location"
                             selectedLatitude = location.latitude
                             selectedLongitude = location.longitude
                             selectedAddress = location.address
@@ -338,7 +351,7 @@ private fun TimePickerField(
     val displayHour = if (hour == 0) 12 else if (hour > 12) hour - 12 else hour
 
     OutlinedTextField(
-        value = String.format("%02d:%02d %s", displayHour, minute, amPm),
+        value = String.format(Locale.US, "%02d:%02d %s", displayHour, minute, amPm),
         onValueChange = {},
         label = { Text("Time") },
         modifier = Modifier
@@ -378,7 +391,6 @@ private fun DropdownField(
             readOnly = true,
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
             modifier = Modifier
-                .menuAnchor()
                 .fillMaxWidth()
         )
         ExposedDropdownMenu(
@@ -406,5 +418,72 @@ private fun SectionTitle(title: String) {
         fontWeight = FontWeight.SemiBold,
         modifier = Modifier.padding(top = 12.dp, bottom = 6.dp)
     )
+}
+
+@Composable
+private fun CustomRouteInputDialog(
+    onSave: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var customRoute by remember { mutableStateOf("") }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        androidx.compose.material3.Surface(
+            modifier = Modifier
+                .fillMaxWidth(0.85f)
+                .padding(16.dp),
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+            color = MaterialTheme.colorScheme.surface
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "Enter Custom Route",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+
+                OutlinedTextField(
+                    value = customRoute,
+                    onValueChange = { customRoute = it },
+                    label = { Text("Route (e.g., Colombo → Kandy)") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp),
+                    singleLine = true
+                )
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp),
+                    horizontalArrangement = androidx.compose.foundation.layout.Arrangement.End
+                ) {
+                    TextButton(onClick = onDismiss) {
+                        Text("Cancel")
+                    }
+                    Button(
+                        onClick = {
+                            if (customRoute.isNotEmpty()) {
+                                onSave(customRoute)
+                            }
+                        },
+                        modifier = Modifier.padding(start = 8.dp),
+                        enabled = customRoute.isNotEmpty()
+                    ) {
+                        Text("Add Route")
+                    }
+                }
+            }
+        }
+    }
 }
 

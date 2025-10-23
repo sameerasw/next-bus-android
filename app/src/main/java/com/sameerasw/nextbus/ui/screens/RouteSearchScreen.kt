@@ -2,12 +2,15 @@ package com.sameerasw.nextbus.ui.screens
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
@@ -46,7 +49,8 @@ val popularRoutes = listOf(
 @Composable
 fun RouteSearchScreen(
     onSelectRoute: (String) -> Unit,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onShowCustomInput: () -> Unit = {}
 ) {
     var searchQuery by remember { mutableStateOf("") }
 
@@ -58,7 +62,8 @@ fun RouteSearchScreen(
 
     ModalBottomSheet(
         onDismissRequest = onBack,
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
+        scrimColor = androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.32f)
     ) {
         Column(
             modifier = Modifier
@@ -68,19 +73,31 @@ fun RouteSearchScreen(
             Text(
                 text = "Select Route",
                 style = MaterialTheme.typography.headlineSmall,
-                modifier = Modifier.padding(bottom = 16.dp)
+                modifier = Modifier.padding(bottom = 8.dp)
             )
 
-            TextField(
-                value = searchQuery,
-                onValueChange = { searchQuery = it },
-                placeholder = { Text("Search routes...") },
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(bottom = 8.dp),
-                singleLine = true
-            )
+                horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)
+            ) {
+                TextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    placeholder = { Text("Search routes...") },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                    modifier = Modifier
+                        .weight(1f),
+                    singleLine = true
+                )
+                Button(
+                    onClick = onShowCustomInput,
+                    modifier = Modifier.padding(top = 4.dp)
+                ) {
+                    Text("+", style = MaterialTheme.typography.labelSmall)
+                }
+            }
 
             LazyColumn(modifier = Modifier.fillMaxWidth()) {
                 items(filteredRoutes) { route ->

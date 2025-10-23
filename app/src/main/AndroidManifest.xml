@@ -34,6 +34,13 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity
+            android:name=".NewScheduleActivity"
+            android:exported="false"
+            android:label="New Schedule"
+            android:theme="@style/Theme.NextBus"
+            android:windowSoftInputMode="adjustResize" />
     </application>
 
 </manifest>

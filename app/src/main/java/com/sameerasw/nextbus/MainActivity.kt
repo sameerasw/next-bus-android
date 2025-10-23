@@ -1,6 +1,7 @@
 package com.sameerasw.nextbus
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -30,7 +31,6 @@ import com.sameerasw.nextbus.location.LocationManager
 import com.sameerasw.nextbus.ui.BusScheduleViewModel
 import com.sameerasw.nextbus.ui.screens.BusScheduleDetailScreen
 import com.sameerasw.nextbus.ui.screens.BusScheduleListScreen
-import com.sameerasw.nextbus.ui.screens.NewScheduleSheet
 import com.sameerasw.nextbus.ui.theme.NextBusTheme
 import kotlinx.coroutines.launch
 
@@ -69,7 +69,6 @@ fun MainApp(activity: MainActivity, modifier: Modifier = Modifier) {
     var hasLocationPermission by remember { mutableStateOf(false) }
     var appInitialized by remember { mutableStateOf(false) }
     var selectedScheduleId by remember { mutableStateOf<Long?>(null) }
-    var showNewScheduleSheet by remember { mutableStateOf(false) }
 
     // Initialize location manager and repository
     val fusedLocationProviderClient = remember {
@@ -136,7 +135,9 @@ fun MainApp(activity: MainActivity, modifier: Modifier = Modifier) {
                 onSelectSchedule = { schedule ->
                     selectedScheduleId = schedule.id
                 },
-                onShowNewSchedule = { showNewScheduleSheet = true }
+                onShowNewSchedule = {
+                    activity.startActivity(Intent(activity, NewScheduleActivity::class.java))
+                }
             )
 
             // Detail bottom sheet (shows when a schedule is selected)
@@ -148,23 +149,6 @@ fun MainApp(activity: MainActivity, modifier: Modifier = Modifier) {
                         viewModel.deleteSchedule(selectedSchedule)
                         selectedScheduleId = null
                     }
-                )
-            }
-
-            // New schedule bottom sheet
-            if (showNewScheduleSheet) {
-                NewScheduleSheet(
-                    location = location,
-                    onDismiss = { showNewScheduleSheet = false },
-                    onSave = { timestamp, route, place, seating, latitude, longitude, address, busType, busTier, busRating ->
-                        viewModel.addSchedule(
-                            timestamp, route, place, seating,
-                            latitude, longitude, address,
-                            busType, busTier, busRating
-                        )
-                        showNewScheduleSheet = false
-                    },
-                    onNavigateToRouteSearch = {}
                 )
             }
         }
