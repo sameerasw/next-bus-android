@@ -10,6 +10,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -17,20 +18,23 @@ import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
-import androidx.compose.material3.TimePickerState
+import androidx.compose.material3.TimePicker
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.sameerasw.nextbus.location.LocationData
 import java.util.Calendar
 
@@ -54,7 +58,6 @@ fun NewScheduleSheet(
     onNavigateToRouteSearch: () -> Unit
 ) {
     val calendar = Calendar.getInstance()
-    var selectedDate by remember { mutableStateOf(calendar.timeInMillis) }
     val timePickerState = rememberTimePickerState(
         initialHour = calendar.get(Calendar.HOUR_OF_DAY),
         initialMinute = calendar.get(Calendar.MINUTE)
@@ -81,138 +84,211 @@ fun NewScheduleSheet(
         return
     }
 
-    ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        androidx.compose.material3.Surface(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-                .verticalScroll(rememberScrollState())
+                .fillMaxWidth(0.9f)
+                .padding(16.dp),
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+            color = MaterialTheme.colorScheme.surface
         ) {
-            Row(modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    text = "New Schedule",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(vertical = 8.dp)
-                )
-                IconButton(onClick = onDismiss) {
-                    Icon(Icons.Default.Close, contentDescription = "Close")
-                }
-            }
-
-            // Time Selection
-            SectionTitle("Departure Time")
-            TimePickerField(
-                timePickerState = timePickerState,
-                onTimeSelected = { showTimePicker = !showTimePicker }
-            )
-
-            // Route Selection
-            SectionTitle("Route")
-            OutlinedTextField(
-                value = route,
-                onValueChange = { route = it },
-                label = { Text("Select Route") },
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 8.dp)
-                    .clickable { showRouteSearch = true },
-                readOnly = true,
-                trailingIcon = {
-                    Button(onClick = { showRouteSearch = true }) {
-                        Text("Browse")
+                    .padding(16.dp)
+                    .verticalScroll(rememberScrollState())
+            ) {
+                // Header
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = "New Schedule",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(vertical = 8.dp)
+                    )
+                    IconButton(onClick = onDismiss, modifier = Modifier.padding(0.dp)) {
+                        Icon(Icons.Default.Close, contentDescription = "Close")
                     }
                 }
-            )
 
-            // Pickup Location
-            SectionTitle("Pickup Location")
-            OutlinedTextField(
-                value = place,
-                onValueChange = { place = it },
-                label = { Text("From") },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp),
-                leadingIcon = {
-                    Icon(Icons.Default.LocationOn, contentDescription = "Location")
-                },
-                trailingIcon = {
-                    if (location.address != null) {
-                        Button(onClick = { place = location.address ?: "" }) {
-                            Text("Use Current")
+                // Time Selection
+                SectionTitle("Departure Time")
+                TimePickerField(
+                    hour = timePickerState.hour,
+                    minute = timePickerState.minute,
+                    onPickTime = { showTimePicker = true }
+                )
+
+                if (showTimePicker) {
+                    TimePickerDialog(
+                        timePickerState = timePickerState,
+                        onDismiss = { showTimePicker = false }
+                    )
+                }
+
+                // Route Selection
+                SectionTitle("Route")
+                OutlinedTextField(
+                    value = route,
+                    onValueChange = { route = it },
+                    label = { Text("Select Route") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp)
+                        .clickable { showRouteSearch = true },
+                    readOnly = true,
+                    trailingIcon = {
+                        Button(onClick = { showRouteSearch = true }, modifier = Modifier.padding(4.dp)) {
+                            Text("Browse", style = MaterialTheme.typography.labelSmall)
                         }
                     }
-                }
-            )
+                )
 
-            // Seating Status
-            SectionTitle("Seating Status")
-            DropdownField(
-                label = "Seating",
-                options = listOf("Available", "Almost full", "Full", "Loaded"),
-                selectedOption = selectedSeating,
-                onOptionSelected = { selectedSeating = it }
-            )
-
-            // Bus Type
-            SectionTitle("Bus Details")
-            DropdownField(
-                label = "Type",
-                options = listOf("sltb", "private"),
-                selectedOption = selectedBusType,
-                onOptionSelected = { selectedBusType = it }
-            )
-
-            // Bus Tier
-            DropdownField(
-                label = "Tier",
-                options = listOf("x1", "x1.5", "x2", "x4"),
-                selectedOption = selectedTier,
-                onOptionSelected = { selectedTier = it }
-            )
-
-            // Bus Rating
-            OutlinedTextField(
-                value = busRating,
-                onValueChange = { busRating = it },
-                label = { Text("Rating (0-5)") },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp)
-            )
-
-            // Save Button
-            Button(
-                onClick = {
-                    if (route.isNotEmpty() && place.isNotEmpty()) {
-                        val calendar = Calendar.getInstance()
-                        calendar.set(Calendar.HOUR_OF_DAY, timePickerState.hour)
-                        calendar.set(Calendar.MINUTE, timePickerState.minute)
-                        calendar.set(Calendar.SECOND, 0)
-
-                        onSave(
-                            calendar.timeInMillis,
-                            route,
-                            place,
-                            selectedSeating,
-                            location.latitude,
-                            location.longitude,
-                            location.address,
-                            selectedBusType,
-                            selectedTier,
-                            busRating.toDoubleOrNull()
-                        )
-                        onDismiss()
+                // Pickup Location
+                SectionTitle("Pickup Location")
+                OutlinedTextField(
+                    value = place,
+                    onValueChange = { place = it },
+                    label = { Text("From") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    leadingIcon = {
+                        Icon(Icons.Default.LocationOn, contentDescription = "Location")
+                    },
+                    trailingIcon = {
+                        if (location.address != null) {
+                            Button(
+                                onClick = { place = location.address ?: "" },
+                                modifier = Modifier.padding(4.dp)
+                            ) {
+                                Text("Use Current", style = MaterialTheme.typography.labelSmall)
+                            }
+                        }
                     }
-                },
+                )
+
+                // Seating Status
+                SectionTitle("Seating Status")
+                DropdownField(
+                    label = "Seating",
+                    options = listOf("Available", "Almost full", "Full", "Loaded"),
+                    selectedOption = selectedSeating,
+                    onOptionSelected = { selectedSeating = it }
+                )
+
+                // Bus Type
+                SectionTitle("Bus Details")
+                DropdownField(
+                    label = "Type",
+                    options = listOf("sltb", "private"),
+                    selectedOption = selectedBusType,
+                    onOptionSelected = { selectedBusType = it }
+                )
+
+                // Bus Tier
+                DropdownField(
+                    label = "Tier",
+                    options = listOf("x1", "x1.5", "x2", "x4"),
+                    selectedOption = selectedTier,
+                    onOptionSelected = { selectedTier = it }
+                )
+
+                // Bus Rating
+                OutlinedTextField(
+                    value = busRating,
+                    onValueChange = { busRating = it },
+                    label = { Text("Rating (0-5)") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp)
+                )
+
+                // Save Button
+                Button(
+                    onClick = {
+                        if (route.isNotEmpty() && place.isNotEmpty()) {
+                            val cal = Calendar.getInstance()
+                            cal.set(Calendar.HOUR_OF_DAY, timePickerState.hour)
+                            cal.set(Calendar.MINUTE, timePickerState.minute)
+                            cal.set(Calendar.SECOND, 0)
+
+                            onSave(
+                                cal.timeInMillis,
+                                route,
+                                place,
+                                selectedSeating,
+                                location.latitude,
+                                location.longitude,
+                                location.address,
+                                selectedBusType,
+                                selectedTier,
+                                busRating.toDoubleOrNull()
+                            )
+                            onDismiss()
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 12.dp),
+                    enabled = route.isNotEmpty() && place.isNotEmpty()
+                ) {
+                    Text("Create Schedule")
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TimePickerDialog(
+    timePickerState: androidx.compose.material3.TimePickerState,
+    onDismiss: () -> Unit
+) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        androidx.compose.material3.Surface(
+            modifier = Modifier
+                .fillMaxWidth(0.85f)
+                .padding(16.dp),
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+            color = MaterialTheme.colorScheme.surface
+        ) {
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 16.dp)
+                    .padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text("Create Schedule")
+                Text(
+                    text = "Select Time",
+                    style = MaterialTheme.typography.headlineSmall,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+
+                TimePicker(state = timePickerState)
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 16.dp),
+                    horizontalArrangement = androidx.compose.foundation.layout.Arrangement.End
+                ) {
+                    TextButton(onClick = onDismiss) {
+                        Text("Cancel")
+                    }
+                    TextButton(onClick = onDismiss, modifier = Modifier.padding(start = 8.dp)) {
+                        Text("OK")
+                    }
+                }
             }
         }
     }
@@ -221,21 +297,22 @@ fun NewScheduleSheet(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TimePickerField(
-    timePickerState: TimePickerState,
-    onTimeSelected: () -> Unit
+    hour: Int,
+    minute: Int,
+    onPickTime: () -> Unit
 ) {
     OutlinedTextField(
-        value = String.format("%02d:%02d", timePickerState.hour, timePickerState.minute),
+        value = String.format("%02d:%02d", hour, minute),
         onValueChange = {},
         label = { Text("Time") },
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 8.dp)
-            .clickable { onTimeSelected() },
+            .clickable { onPickTime() },
         readOnly = true,
         trailingIcon = {
-            Button(onClick = { onTimeSelected() }) {
-                Text("Pick")
+            Button(onClick = onPickTime, modifier = Modifier.padding(4.dp)) {
+                Text("Pick", style = MaterialTheme.typography.labelSmall)
             }
         }
     )
@@ -289,9 +366,9 @@ private fun DropdownField(
 private fun SectionTitle(title: String) {
     Text(
         text = title,
-        style = MaterialTheme.typography.titleMedium,
+        style = MaterialTheme.typography.titleSmall,
         fontWeight = FontWeight.SemiBold,
-        modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
+        modifier = Modifier.padding(top = 12.dp, bottom = 6.dp)
     )
 }
 

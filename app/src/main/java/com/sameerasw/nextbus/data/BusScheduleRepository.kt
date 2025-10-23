@@ -6,9 +6,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 
 class BusScheduleRepository(private val dao: BusScheduleDao) {
-    fun getAllSchedules(): Flow<List<BusScheduleEntity>> = flow {
-        emit(dao.getAll())
-    }.flowOn(Dispatchers.IO)
+    fun getAllSchedules(): Flow<List<BusScheduleEntity>> = dao.getAllSchedules()
 
     suspend fun insertSchedule(schedule: BusScheduleEntity): Long {
         return dao.insert(schedule)
