@@ -70,9 +70,9 @@ fun NewScheduleSheet(
     var selectedLatitude by remember { mutableStateOf(location.latitude) }
     var selectedLongitude by remember { mutableStateOf(location.longitude) }
     var selectedAddress by remember { mutableStateOf(location.address) }
-    var selectedSeating by remember { mutableStateOf<String?>(null) }
+    var selectedSeating by remember { mutableStateOf("Available") }
     var selectedBusType by remember { mutableStateOf<String?>(null) }
-    var selectedTier by remember { mutableStateOf<String?>(null) }
+    var selectedTier by remember { mutableStateOf("Normal (x1)") }
     var busRating by remember { mutableStateOf("") }
     var showRouteSearch by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
@@ -185,14 +185,14 @@ fun NewScheduleSheet(
                 Button(
                     onClick = {
                         if (location.latitude != null && location.longitude != null && location.address != null) {
-                            place = location.address ?: "Current Location"
+                            place = location.address
                             selectedLatitude = location.latitude
                             selectedLongitude = location.longitude
                             selectedAddress = location.address
                         }
                     },
                     modifier = Modifier.weight(1f),
-                    enabled = location.latitude != null && location.longitude != null
+                    enabled = location.latitude != null && location.longitude != null && location.address != null
                 ) {
                     Text("Current Location", style = MaterialTheme.typography.labelSmall)
                 }
@@ -225,7 +225,7 @@ fun NewScheduleSheet(
             // Bus Tier
             DropdownField(
                 label = "Tier",
-                options = listOf("x1", "x1.5", "x2", "x4"),
+                options = listOf("Normal (x1)", "Semi-Luxury (x1.5)", "Luxury (x2)", "Express (x4)"),
                 selectedOption = selectedTier,
                 onOptionSelected = { selectedTier = it }
             )
@@ -258,7 +258,7 @@ fun NewScheduleSheet(
                             selectedLongitude,
                             selectedAddress,
                             selectedBusType,
-                            selectedTier,
+                            extractTierCode(selectedTier),
                             busRating.toDoubleOrNull()
                         )
                         onDismiss()
@@ -486,4 +486,5 @@ private fun CustomRouteInputDialog(
         }
     }
 }
+
 

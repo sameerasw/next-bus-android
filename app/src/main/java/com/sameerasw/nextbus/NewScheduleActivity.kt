@@ -1,13 +1,10 @@
 package com.sameerasw.nextbus
 
-import android.app.Activity
-import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.SystemBarStyle
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -16,12 +13,12 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.Button
@@ -54,15 +51,13 @@ import androidx.core.content.ContextCompat
 import com.google.android.gms.location.LocationServices
 import com.sameerasw.nextbus.data.AppDatabase
 import com.sameerasw.nextbus.data.BusScheduleRepository
+import com.sameerasw.nextbus.data.RouteRepository
 import com.sameerasw.nextbus.location.LocationManager
 import com.sameerasw.nextbus.ui.BusScheduleViewModel
 import com.sameerasw.nextbus.ui.components.MapLocationPickerDialog
-import com.sameerasw.nextbus.ui.screens.RouteSearchScreen
 import com.sameerasw.nextbus.ui.theme.NextBusTheme
-import kotlinx.coroutines.runBlocking
 import java.util.Calendar
 import java.util.Locale
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.runtime.LaunchedEffect
 import kotlinx.coroutines.launch
 
@@ -105,8 +100,26 @@ fun NewScheduleScreen(
 ) {
     val database = remember { AppDatabase.getInstance(activity) }
     val repository = remember { BusScheduleRepository(database.busScheduleDao()) }
+    val routeRepository = remember { RouteRepository(database.routeDao()) }
     val viewModel: BusScheduleViewModel = remember {
         BusScheduleViewModel(repository)
+    }
+
+    var routesList by remember { mutableStateOf<List<String>>(emptyList()) }
+    var lastUsedRoute by remember { mutableStateOf("") }
+
+    // Load routes from database and last used route
+    LaunchedEffect(Unit) {
+        // Load routes
+        routeRepository.getAllRoutes().collect { routes ->
+            routesList = routes.map { it.name }
+        }
+    }
+
+    // Load last used route from preferences
+    LaunchedEffect(Unit) {
+        val sharedPref = activity.getSharedPreferences("bus_schedule_prefs", android.content.Context.MODE_PRIVATE)
+        lastUsedRoute = sharedPref.getString("last_route", "") ?: ""
     }
 
     val fusedLocationProviderClient = remember {
@@ -124,14 +137,14 @@ fun NewScheduleScreen(
         initialMinute = calendar.get(Calendar.MINUTE)
     )
 
-    var route by remember { mutableStateOf("") }
+    var route by remember { mutableStateOf(lastUsedRoute) }
     var place by remember { mutableStateOf(location.address ?: "") }
     var selectedLatitude by remember { mutableStateOf(location.latitude) }
     var selectedLongitude by remember { mutableStateOf(location.longitude) }
     var selectedAddress by remember { mutableStateOf(location.address) }
-    var selectedSeating by remember { mutableStateOf<String?>(null) }
+    var selectedSeating by remember { mutableStateOf("Available") }
     var selectedBusType by remember { mutableStateOf<String?>(null) }
-    var selectedTier by remember { mutableStateOf<String?>(null) }
+    var selectedTier by remember { mutableStateOf("Normal (x1)") }
     var busRating by remember { mutableStateOf("") }
     var showRouteSearch by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
@@ -164,7 +177,7 @@ fun NewScheduleScreen(
                 title = { Text("New Schedule") },
                 navigationIcon = {
                     IconButton(onClick = { activity.finish() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 }
             )
@@ -248,14 +261,14 @@ fun NewScheduleScreen(
                 Button(
                     onClick = {
                         if (location.latitude != null && location.longitude != null && location.address != null) {
-                            place = location.address ?: "Current Location"
+                            place = location.address ?: ""
                             selectedLatitude = location.latitude
                             selectedLongitude = location.longitude
                             selectedAddress = location.address
                         }
                     },
                     modifier = Modifier.weight(1f),
-                    enabled = location.latitude != null && location.longitude != null
+                    enabled = location.latitude != null && location.longitude != null && location.address != null
                 ) {
                     Text("Current Location", style = MaterialTheme.typography.labelSmall)
                 }
@@ -298,7 +311,7 @@ fun NewScheduleScreen(
             // Bus Tier
             DropdownField(
                 label = "Tier",
-                options = listOf("x1", "x1.5", "x2", "x4"),
+                options = listOf("Normal (x1)", "Semi-Luxury (x1.5)", "Luxury (x2)", "Express (x4)"),
                 selectedOption = selectedTier,
                 onOptionSelected = { selectedTier = it }
             )
@@ -322,6 +335,9 @@ fun NewScheduleScreen(
                         cal.set(Calendar.MINUTE, timePickerState.minute)
                         cal.set(Calendar.SECOND, 0)
 
+                        // Extract tier code from display text
+                        val tierCode = extractTierCode(selectedTier)
+
                         viewModel.addSchedule(
                             cal.timeInMillis,
                             route,
@@ -331,9 +347,14 @@ fun NewScheduleScreen(
                             selectedLongitude,
                             selectedAddress,
                             selectedBusType,
-                            selectedTier,
+                            tierCode,
                             busRating.toDoubleOrNull()
                         )
+
+                        // Save last used route
+                        val sharedPref = activity.getSharedPreferences("bus_schedule_prefs", android.content.Context.MODE_PRIVATE)
+                        sharedPref.edit().putString("last_route", route).apply()
+
                         activity.finish()
                     }
                 },
@@ -350,6 +371,8 @@ fun NewScheduleScreen(
     // Route Search Screen
     if (showRouteSearch) {
         RouteSearchScreenDialog(
+            routes = routesList,
+            routeRepository = routeRepository,
             onSelectRoute = { selectedRoute ->
                 route = selectedRoute
                 showRouteSearch = false
@@ -362,6 +385,7 @@ fun NewScheduleScreen(
     // Custom Route Input
     if (showCustomRouteInput) {
         CustomRouteInputDialog(
+            routeRepository = routeRepository,
             onSave = { customRoute ->
                 route = customRoute
                 showCustomRouteInput = false
@@ -391,35 +415,18 @@ fun NewScheduleScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RouteSearchScreenDialog(
+    routes: List<String>,
+    routeRepository: RouteRepository,
     onSelectRoute: (String) -> Unit,
     onBack: () -> Unit,
     onShowCustomInput: () -> Unit = {}
 ) {
     var searchQuery by remember { mutableStateOf("") }
 
-    val popularRoutes = listOf(
-        "Colombo → Kandy",
-        "Colombo → Galle",
-        "Colombo → Jaffna",
-        "Kandy → Colombo",
-        "Galle → Colombo",
-        "Colombo → Matara",
-        "Kandy → Galle",
-        "Colombo → Anuradhapura",
-        "Colombo → Nuwara Eliya",
-        "Colombo → Negombo",
-        "Colombo → Batticaloa",
-        "Colombo → Trincomalee",
-        "Colombo → Kurunegala",
-        "Colombo → Ratnapura",
-        "Colombo → Matara",
-        "Kandy → Nuwara Eliya"
-    )
-
     val filteredRoutes = if (searchQuery.isEmpty()) {
-        popularRoutes
+        routes
     } else {
-        popularRoutes.filter { it.contains(searchQuery, ignoreCase = true) }
+        routes.filter { it.contains(searchQuery, ignoreCase = true) }
     }
 
     Dialog(
@@ -465,13 +472,38 @@ fun RouteSearchScreenDialog(
                 LazyColumn(modifier = Modifier.fillMaxWidth()) {
                     items(filteredRoutes.size) { index ->
                         val route = filteredRoutes[index]
-                        androidx.compose.material3.ListItem(
-                            headlineContent = { Text(route) },
-                            modifier = Modifier.clickable {
-                                onSelectRoute(route)
-                                onBack()
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    onSelectRoute(route)
+                                    onBack()
+                                }
+                                .padding(8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                route,
+                                modifier = Modifier.weight(1f),
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            IconButton(
+                                onClick = {
+                                    val routeEntity = com.sameerasw.nextbus.data.RouteEntity(name = route)
+                                    kotlinx.coroutines.MainScope().launch {
+                                        routeRepository.deleteRoute(routeEntity)
+                                    }
+                                },
+                                modifier = Modifier.size(24.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.Close,
+                                    contentDescription = "Delete route",
+                                    modifier = Modifier.size(16.dp)
+                                )
                             }
-                        )
+                        }
                     }
                 }
 
@@ -490,6 +522,7 @@ fun RouteSearchScreenDialog(
 
 @Composable
 private fun CustomRouteInputDialog(
+    routeRepository: RouteRepository,
     onSave: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -541,7 +574,10 @@ private fun CustomRouteInputDialog(
                     Button(
                         onClick = {
                             if (customRoute.isNotEmpty()) {
-                                onSave(customRoute)
+                                kotlinx.coroutines.MainScope().launch {
+                                    routeRepository.addRoute(customRoute)
+                                    onSave(customRoute)
+                                }
                             }
                         },
                         modifier = Modifier.padding(start = 8.dp),
@@ -655,10 +691,12 @@ private fun DropdownField(
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
             modifier = Modifier
                 .fillMaxWidth()
+                .menuAnchor()
         )
         ExposedDropdownMenu(
             expanded = expanded,
-            onDismissRequest = { expanded = false }
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.fillMaxWidth()
         ) {
             options.forEach { option ->
                 androidx.compose.material3.DropdownMenuItem(
@@ -666,11 +704,21 @@ private fun DropdownField(
                     onClick = {
                         onOptionSelected(option)
                         expanded = false
-                    }
+                    },
+                    contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
                 )
             }
         }
     }
 }
 
-
+private fun extractTierCode(tierDisplay: String?): String? {
+    if (tierDisplay == null) return null
+    return when {
+        tierDisplay.contains("x1") && !tierDisplay.contains("x1.5") -> "x1"
+        tierDisplay.contains("x1.5") -> "x1.5"
+        tierDisplay.contains("x2") -> "x2"
+        tierDisplay.contains("x4") -> "x4"
+        else -> tierDisplay
+    }
+}

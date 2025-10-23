@@ -47,6 +47,8 @@ class LocationManager(
                         latitude = location.latitude,
                         longitude = location.longitude
                     )
+                    // Geocode the location to get the address
+                    geocodeLocation(location.latitude, location.longitude)
                 }
             }
         }
@@ -64,7 +66,23 @@ class LocationManager(
                     latitude = it.latitude,
                     longitude = it.longitude
                 )
+                // Geocode the location to get the address
+                geocodeLocation(it.latitude, it.longitude)
             }
+        }
+    }
+
+    private fun geocodeLocation(latitude: Double, longitude: Double) {
+        try {
+            @Suppress("DEPRECATION")
+            val addresses = geocoder.getFromLocation(latitude, longitude, 1)
+            if (!addresses.isNullOrEmpty()) {
+                val address = addresses[0]
+                val addressString = buildAddressString(address)
+                _locationState.value = _locationState.value.copy(address = addressString)
+            }
+        } catch (e: Exception) {
+            // Geocoding failed, address remains null
         }
     }
 

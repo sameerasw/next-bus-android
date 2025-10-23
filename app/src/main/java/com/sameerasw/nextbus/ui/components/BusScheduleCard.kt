@@ -139,7 +139,7 @@ fun BusScheduleCard(
                                 horizontalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
                                 Text(
-                                    text = "${schedule.bus.type?.uppercase() ?: "N/A"} ${schedule.bus.tier ?: ""}".trim(),
+                                    text = "${schedule.bus.type?.uppercase() ?: "N/A"} ${getTierName(schedule.bus.tier)}".trim(),
                                     style = MaterialTheme.typography.labelMedium,
                                     color = MaterialTheme.colorScheme.onTertiaryContainer,
                                     maxLines = 1,
@@ -190,4 +190,13 @@ private fun getSeatingTextColor(seating: String?): androidx.compose.ui.graphics.
     }
 }
 
-
+private fun getTierName(tier: String?): String {
+    if (tier == null) return ""
+    return when {
+        tier.contains("x1") && !tier.contains("x1.5") -> "Normal"
+        tier.contains("x1.5") -> "Semi-Luxury"
+        tier.contains("x2") -> "Luxury"
+        tier.contains("x4") -> "Express"
+        else -> tier
+    }
+}

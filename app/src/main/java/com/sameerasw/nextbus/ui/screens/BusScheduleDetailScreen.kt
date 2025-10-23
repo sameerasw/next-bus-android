@@ -173,13 +173,25 @@ private fun DetailItem(label: String, value: String) {
     }
 }
 
-private fun displayTier(tier: String): String {
-    return when (tier) {
-        "x1" -> "Executive"
-        "x1.5" -> "Semi-Luxury"
-        "x2" -> "Luxury"
-        "x4" -> "Premium"
+private fun displayTier(tier: String?): String {
+    if (tier == null) return "N/A"
+    return when {
+        tier.contains("x1") && !tier.contains("x1.5") -> "Normal (x1)"
+        tier.contains("x1.5") -> "Semi-Luxury (x1.5)"
+        tier.contains("x2") -> "Luxury (x2)"
+        tier.contains("x4") -> "Express (x4)"
         else -> tier
+    }
+}
+
+fun extractTierCode(tierDisplay: String?): String? {
+    if (tierDisplay == null) return null
+    return when {
+        tierDisplay.contains("x1") && !tierDisplay.contains("x1.5") -> "x1"
+        tierDisplay.contains("x1.5") -> "x1.5"
+        tierDisplay.contains("x2") -> "x2"
+        tierDisplay.contains("x4") -> "x4"
+        else -> tierDisplay
     }
 }
 
