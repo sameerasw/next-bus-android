@@ -34,6 +34,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import com.sameerasw.nextbus.data.BusScheduleEntity
 import com.sameerasw.nextbus.location.LocationData
 import com.sameerasw.nextbus.ui.components.BusScheduleCard
+import java.util.Calendar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -110,9 +111,23 @@ fun BusScheduleListScreen(
             val listState = rememberLazyListState()
             val currentTime = System.currentTimeMillis()
 
-            // Separate schedules into past and upcoming
-            val pastSchedules = schedules.filter { it.timestamp < currentTime }
-            val upcomingSchedules = schedules.filter { it.timestamp >= currentTime }
+            // Helper function to get time of day in milliseconds (0 to 86400000)
+            fun getTimeOfDay(timestamp: Long): Long {
+                val calendar = Calendar.getInstance()
+                calendar.timeInMillis = timestamp
+                val hour = calendar.get(Calendar.HOUR_OF_DAY)
+                val minute = calendar.get(Calendar.MINUTE)
+                val second = calendar.get(Calendar.SECOND)
+                return (hour * 3600000L) + (minute * 60000L) + (second * 1000L)
+            }
+
+            // Get current time of day
+            val currentTimeOfDay = getTimeOfDay(currentTime)
+
+            // Sort schedules by time of day only (ignoring date)
+            val sortedSchedules = schedules.sortedBy { getTimeOfDay(it.timestamp) }
+            val pastSchedules = sortedSchedules.filter { getTimeOfDay(it.timestamp) < currentTimeOfDay }
+            val upcomingSchedules = sortedSchedules.filter { getTimeOfDay(it.timestamp) >= currentTimeOfDay }
 
             // Find first upcoming schedule and auto-scroll to it
             val firstUpcomingIndex = pastSchedules.size
