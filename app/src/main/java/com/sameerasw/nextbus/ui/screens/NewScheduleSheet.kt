@@ -9,6 +9,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -20,6 +21,8 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
+import androidx.compose.material3.TimePickerState
+import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -50,8 +53,13 @@ fun NewScheduleSheet(
     ) -> Unit,
     onNavigateToRouteSearch: () -> Unit
 ) {
-    var selectedHour by remember { mutableStateOf(Calendar.getInstance().get(Calendar.HOUR_OF_DAY)) }
-    var selectedMinute by remember { mutableStateOf(Calendar.getInstance().get(Calendar.MINUTE)) }
+    val calendar = Calendar.getInstance()
+    var selectedDate by remember { mutableStateOf(calendar.timeInMillis) }
+    val timePickerState = rememberTimePickerState(
+        initialHour = calendar.get(Calendar.HOUR_OF_DAY),
+        initialMinute = calendar.get(Calendar.MINUTE)
+    )
+
     var route by remember { mutableStateOf("") }
     var place by remember { mutableStateOf(location.address ?: "") }
     var selectedSeating by remember { mutableStateOf<String?>(null) }
@@ -59,6 +67,7 @@ fun NewScheduleSheet(
     var selectedTier by remember { mutableStateOf<String?>(null) }
     var busRating by remember { mutableStateOf("") }
     var showRouteSearch by remember { mutableStateOf(false) }
+    var showTimePicker by remember { mutableStateOf(false) }
 
     if (showRouteSearch) {
         RouteSearchScreen(
@@ -94,23 +103,11 @@ fun NewScheduleSheet(
             }
 
             // Time Selection
-            SectionTitle("Time")
-            Row(modifier = Modifier.fillMaxWidth()) {
-                OutlinedTextField(
-                    value = selectedHour.toString().padStart(2, '0'),
-                    onValueChange = { if (it.length <= 2) selectedHour = it.toIntOrNull() ?: 0 },
-                    label = { Text("Hour") },
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(end = 8.dp)
-                )
-                OutlinedTextField(
-                    value = selectedMinute.toString().padStart(2, '0'),
-                    onValueChange = { if (it.length <= 2) selectedMinute = it.toIntOrNull() ?: 0 },
-                    label = { Text("Minute") },
-                    modifier = Modifier.weight(1f)
-                )
-            }
+            SectionTitle("Departure Time")
+            TimePickerField(
+                timePickerState = timePickerState,
+                onTimeSelected = { showTimePicker = !showTimePicker }
+            )
 
             // Route Selection
             SectionTitle("Route")
@@ -138,7 +135,17 @@ fun NewScheduleSheet(
                 label = { Text("From") },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 8.dp)
+                    .padding(vertical = 8.dp),
+                leadingIcon = {
+                    Icon(Icons.Default.LocationOn, contentDescription = "Location")
+                },
+                trailingIcon = {
+                    if (location.address != null) {
+                        Button(onClick = { place = location.address ?: "" }) {
+                            Text("Use Current")
+                        }
+                    }
+                }
             )
 
             // Seating Status
@@ -182,8 +189,9 @@ fun NewScheduleSheet(
                 onClick = {
                     if (route.isNotEmpty() && place.isNotEmpty()) {
                         val calendar = Calendar.getInstance()
-                        calendar.set(Calendar.HOUR_OF_DAY, selectedHour)
-                        calendar.set(Calendar.MINUTE, selectedMinute)
+                        calendar.set(Calendar.HOUR_OF_DAY, timePickerState.hour)
+                        calendar.set(Calendar.MINUTE, timePickerState.minute)
+                        calendar.set(Calendar.SECOND, 0)
 
                         onSave(
                             calendar.timeInMillis,
@@ -208,6 +216,29 @@ fun NewScheduleSheet(
             }
         }
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TimePickerField(
+    timePickerState: TimePickerState,
+    onTimeSelected: () -> Unit
+) {
+    OutlinedTextField(
+        value = String.format("%02d:%02d", timePickerState.hour, timePickerState.minute),
+        onValueChange = {},
+        label = { Text("Time") },
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp)
+            .clickable { onTimeSelected() },
+        readOnly = true,
+        trailingIcon = {
+            Button(onClick = { onTimeSelected() }) {
+                Text("Pick")
+            }
+        }
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -259,8 +290,8 @@ private fun SectionTitle(title: String) {
     Text(
         text = title,
         style = MaterialTheme.typography.titleMedium,
-        fontWeight = FontWeight.Bold,
-        modifier = Modifier.padding(vertical = 12.dp, horizontal = 4.dp)
+        fontWeight = FontWeight.SemiBold,
+        modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
     )
 }
 

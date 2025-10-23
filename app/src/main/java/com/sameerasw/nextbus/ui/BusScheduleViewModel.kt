@@ -12,7 +12,7 @@ import kotlinx.coroutines.launch
 
 class BusScheduleViewModel(private val repository: BusScheduleRepository) : ViewModel() {
     val schedules: StateFlow<List<BusScheduleEntity>> = repository.getAllSchedules()
-        .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     fun addSchedule(
         timestamp: Long,

@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
@@ -15,6 +16,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -52,12 +54,19 @@ fun BusScheduleListScreen(
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("Bus Schedules") }
+                title = {
+                    Text(
+                        text = "Bus Schedules",
+                        style = MaterialTheme.typography.headlineSmall
+                    )
+                }
             )
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { showNewScheduleSheet = true }
+                onClick = { showNewScheduleSheet = true },
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Add schedule")
             }
@@ -71,9 +80,16 @@ fun BusScheduleListScreen(
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                Icon(
+                    Icons.Default.Send,
+                    contentDescription = "No schedules",
+                    modifier = Modifier.padding(bottom = 16.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
                 Text(
                     text = "No schedules yet",
-                    style = MaterialTheme.typography.bodyLarge
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     text = "Tap + to create your first schedule",
@@ -83,7 +99,10 @@ fun BusScheduleListScreen(
                 )
             }
         } else {
-            LazyColumn(modifier = Modifier.padding(innerPadding)) {
+            LazyColumn(
+                modifier = Modifier.padding(innerPadding),
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(8.dp)
+            ) {
                 items(schedules) { schedule ->
                     BusScheduleCard(
                         schedule = schedule,
