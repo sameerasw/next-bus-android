@@ -9,13 +9,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.Surface
@@ -32,11 +30,11 @@ import java.util.Locale
 @Composable
 fun BusScheduleCard(
     schedule: BusScheduleEntity,
-    onDelete: () -> Unit,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Card(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 12.dp, vertical = 6.dp)
             .clickable { onClick() },
@@ -54,41 +52,13 @@ fun BusScheduleCard(
                 .fillMaxWidth()
                 .padding(12.dp)
         ) {
-            // Header with time and delete button
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                // Time (no background)
-                Text(
-                    text = SimpleDateFormat("hh:mm a", Locale.getDefault()).format(Date(schedule.timestamp)),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
-
-                // Delete Button Pill
-                Surface(
-                    color = MaterialTheme.colorScheme.errorContainer,
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier
-                        .padding(start = 12.dp)
-                        .clickable { onDelete() }
-                ) {
-                    IconButton(
-                        onClick = onDelete,
-                        modifier = Modifier.size(40.dp)
-                    ) {
-                        Icon(
-                            Icons.Default.Delete,
-                            contentDescription = "Delete schedule",
-                            tint = MaterialTheme.colorScheme.onErrorContainer,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                }
-            }
+            // Time display
+            Text(
+                text = SimpleDateFormat("hh:mm a", Locale.getDefault()).format(Date(schedule.timestamp)),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary
+            )
 
             // Route and Location Pill
             Surface(

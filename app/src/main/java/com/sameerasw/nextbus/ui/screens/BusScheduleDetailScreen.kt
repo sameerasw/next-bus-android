@@ -9,6 +9,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -29,7 +30,8 @@ import java.util.Locale
 @Composable
 fun BusScheduleDetailScreen(
     schedule: BusScheduleEntity,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onDelete: () -> Unit
 ) {
     Scaffold(
         topBar = {
@@ -38,6 +40,11 @@ fun BusScheduleDetailScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    IconButton(onClick = onDelete) {
+                        Icon(Icons.Default.Delete, contentDescription = "Delete schedule", tint = MaterialTheme.colorScheme.error)
                     }
                 }
             )

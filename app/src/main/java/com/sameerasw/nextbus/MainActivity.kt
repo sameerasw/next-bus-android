@@ -131,7 +131,11 @@ fun MainApp(activity: MainActivity, modifier: Modifier = Modifier) {
             if (selectedSchedule != null) {
                 BusScheduleDetailScreen(
                     schedule = selectedSchedule,
-                    onBack = { selectedScheduleId = null }
+                    onBack = { selectedScheduleId = null },
+                    onDelete = {
+                        viewModel.deleteSchedule(selectedSchedule)
+                        selectedScheduleId = null
+                    }
                 )
             } else {
                 BusScheduleListScreen(
@@ -143,9 +147,6 @@ fun MainApp(activity: MainActivity, modifier: Modifier = Modifier) {
                             latitude, longitude, address,
                             busType, busTier, busRating
                         )
-                    },
-                    onDeleteSchedule = { schedule ->
-                        viewModel.deleteSchedule(schedule)
                     },
                     onSelectSchedule = { schedule ->
                         selectedScheduleId = schedule.id
