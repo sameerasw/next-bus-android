@@ -9,18 +9,29 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.google.android.gms.location.LocationServices
+import com.sameerasw.nextbus.data.AppDatabase
+import com.sameerasw.nextbus.data.BusScheduleRepository
+import com.sameerasw.nextbus.location.LocationManager
+import com.sameerasw.nextbus.ui.BusScheduleViewModel
+import com.sameerasw.nextbus.ui.screens.BusScheduleDetailScreen
+import com.sameerasw.nextbus.ui.screens.BusScheduleListScreen
 import com.sameerasw.nextbus.ui.theme.NextBusTheme
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
@@ -30,8 +41,8 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             NextBusTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    MainApp(activity = this@MainActivity, modifier = Modifier.padding(innerPadding))
+                Scaffold(modifier = Modifier.fillMaxSize()) { paddingValues ->
+                    MainApp(activity = this@MainActivity, modifier = Modifier.padding(paddingValues))
                 }
             }
         }
@@ -42,11 +53,41 @@ class MainActivity : ComponentActivity() {
 fun MainApp(activity: MainActivity, modifier: Modifier = Modifier) {
     var hasLocationPermission by remember { mutableStateOf(false) }
     var appInitialized by remember { mutableStateOf(false) }
+    var selectedScheduleId by remember { mutableStateOf<Long?>(null) }
+
+    // Initialize location manager and repository
+    val fusedLocationProviderClient = remember {
+        LocationServices.getFusedLocationProviderClient(activity)
+    }
+    val locationManager = remember {
+        LocationManager(activity, fusedLocationProviderClient)
+    }
+
+    val database = remember { AppDatabase.getInstance(activity) }
+    val repository = remember { BusScheduleRepository(database.busScheduleDao()) }
+    val viewModel: BusScheduleViewModel = viewModel(
+        factory = object : androidx.lifecycle.ViewModelProvider.Factory {
+            override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
+                @Suppress("UNCHECKED_CAST")
+                return BusScheduleViewModel(repository) as T
+            }
+        }
+    )
+
+    val schedules by viewModel.schedules.collectAsState()
+    val location by locationManager.locationState
+    val scope = rememberCoroutineScope()
 
     val locationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         hasLocationPermission = isGranted
+        if (isGranted) {
+            locationManager.startLocationUpdates()
+            scope.launch {
+                locationManager.updateAddressFromLocation()
+            }
+        }
         appInitialized = true
     }
 
@@ -61,13 +102,42 @@ fun MainApp(activity: MainActivity, modifier: Modifier = Modifier) {
         if (!hasLocationPermission) {
             locationPermissionLauncher.launch(permission)
         } else {
+            locationManager.startLocationUpdates()
+            scope.launch {
+                locationManager.updateAddressFromLocation()
+            }
             appInitialized = true
         }
     }
 
-    if (appInitialized) {
-        Text("Next Bus App - Ready to use!", modifier = modifier)
-    } else {
-        Text("Requesting permissions...", modifier = modifier)
+    Box(modifier = modifier) {
+        if (appInitialized) {
+            val selectedSchedule = schedules.find { it.id == selectedScheduleId }
+
+            if (selectedSchedule != null) {
+                BusScheduleDetailScreen(
+                    schedule = selectedSchedule,
+                    onBack = { selectedScheduleId = null }
+                )
+            } else {
+                BusScheduleListScreen(
+                    schedules = schedules,
+                    location = location,
+                    onAddSchedule = { timestamp, route, place, seating, latitude, longitude, address, busType, busTier, busRating ->
+                        viewModel.addSchedule(
+                            timestamp, route, place, seating,
+                            latitude, longitude, address,
+                            busType, busTier, busRating
+                        )
+                    },
+                    onDeleteSchedule = { schedule ->
+                        viewModel.deleteSchedule(schedule)
+                    },
+                    onSelectSchedule = { schedule ->
+                        selectedScheduleId = schedule.id
+                    }
+                )
+            }
+        }
     }
 }
