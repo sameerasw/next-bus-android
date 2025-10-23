@@ -17,10 +17,10 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.NextBus">
 
-        <!-- Google Maps API Key - REPLACE WITH YOUR API KEY -->
+        <!-- Google Maps API Key - Loaded from local.properties at build time -->
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="YOUR_GOOGLE_MAPS_API_KEY_HERE" />
+            android:value="${GOOGLE_MAPS_API_KEY}" />
 
         <activity
             android:name=".MainActivity"

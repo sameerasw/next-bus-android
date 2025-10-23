@@ -32,10 +32,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.sameerasw.nextbus.location.LocationData
+import com.sameerasw.nextbus.ui.components.MapLocationPickerDialog
 import java.util.Calendar
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -65,12 +67,16 @@ fun NewScheduleSheet(
 
     var route by remember { mutableStateOf("") }
     var place by remember { mutableStateOf(location.address ?: "") }
+    var selectedLatitude by remember { mutableStateOf(location.latitude) }
+    var selectedLongitude by remember { mutableStateOf(location.longitude) }
+    var selectedAddress by remember { mutableStateOf(location.address) }
     var selectedSeating by remember { mutableStateOf<String?>(null) }
     var selectedBusType by remember { mutableStateOf<String?>(null) }
     var selectedTier by remember { mutableStateOf<String?>(null) }
     var busRating by remember { mutableStateOf("") }
     var showRouteSearch by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
+    var showLocationPicker by remember { mutableStateOf(false) }
 
     if (showRouteSearch) {
         RouteSearchScreen(
@@ -160,18 +166,29 @@ fun NewScheduleSheet(
                         .padding(vertical = 8.dp),
                     leadingIcon = {
                         Icon(Icons.Default.LocationOn, contentDescription = "Location")
-                    },
-                    trailingIcon = {
-                        if (location.address != null) {
-                            Button(
-                                onClick = { place = location.address ?: "" },
-                                modifier = Modifier.padding(4.dp)
-                            ) {
-                                Text("Use Current", style = MaterialTheme.typography.labelSmall)
-                            }
-                        }
                     }
                 )
+
+                // Location selection buttons
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)
+                ) {
+                    Button(
+                        onClick = { place = location.address ?: ""; selectedLatitude = location.latitude; selectedLongitude = location.longitude; selectedAddress = location.address },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Current Location", style = MaterialTheme.typography.labelSmall)
+                    }
+                    Button(
+                        onClick = { showLocationPicker = true },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Pick on Map", style = MaterialTheme.typography.labelSmall)
+                    }
+                }
 
                 // Seating Status
                 SectionTitle("Seating Status")
@@ -223,9 +240,9 @@ fun NewScheduleSheet(
                                 route,
                                 place,
                                 selectedSeating,
-                                location.latitude,
-                                location.longitude,
-                                location.address,
+                                selectedLatitude,
+                                selectedLongitude,
+                                selectedAddress,
                                 selectedBusType,
                                 selectedTier,
                                 busRating.toDoubleOrNull()
@@ -239,6 +256,22 @@ fun NewScheduleSheet(
                     enabled = route.isNotEmpty() && place.isNotEmpty()
                 ) {
                     Text("Create Schedule")
+                }
+
+                // Location Picker Dialog
+                if (showLocationPicker) {
+                    MapLocationPickerDialog(
+                        initialLatitude = selectedLatitude,
+                        initialLongitude = selectedLongitude,
+                        onLocationSelected = { selectedLat, selectedLng, selectedAddr ->
+                            selectedLatitude = selectedLat
+                            selectedLongitude = selectedLng
+                            selectedAddress = selectedAddr
+                            place = selectedAddr
+                            showLocationPicker = false
+                        },
+                        onDismiss = { showLocationPicker = false }
+                    )
                 }
             }
         }
@@ -374,4 +407,5 @@ private fun SectionTitle(title: String) {
         modifier = Modifier.padding(top = 12.dp, bottom = 6.dp)
     )
 }
+
 
