@@ -2,21 +2,17 @@ package com.sameerasw.nextbus.ui.screens
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
@@ -60,23 +56,21 @@ fun RouteSearchScreen(
         popularRoutes.filter { it.contains(searchQuery, ignoreCase = true) }
     }
 
-    Scaffold(
-        topBar = {
-            CenterAlignedTopAppBar(
-                title = { Text("Select Route") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-                    }
-                }
-            )
-        }
-    ) { innerPadding ->
+    ModalBottomSheet(
+        onDismissRequest = onBack,
+        modifier = Modifier.fillMaxWidth()
+    ) {
         Column(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
+                .fillMaxWidth()
+                .padding(16.dp)
         ) {
+            Text(
+                text = "Select Route",
+                style = MaterialTheme.typography.headlineSmall,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+
             TextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
@@ -84,11 +78,11 @@ fun RouteSearchScreen(
                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(8.dp),
+                    .padding(bottom = 8.dp),
                 singleLine = true
             )
 
-            LazyColumn(modifier = Modifier.fillMaxSize()) {
+            LazyColumn(modifier = Modifier.fillMaxWidth()) {
                 items(filteredRoutes) { route ->
                     ListItem(
                         headlineContent = { Text(route) },

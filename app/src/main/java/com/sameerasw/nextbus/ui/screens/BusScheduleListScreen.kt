@@ -21,10 +21,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -32,7 +28,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
 import com.sameerasw.nextbus.data.BusScheduleEntity
-import com.sameerasw.nextbus.location.LocationData
 import com.sameerasw.nextbus.ui.components.BusScheduleCard
 import java.util.Calendar
 
@@ -40,22 +35,9 @@ import java.util.Calendar
 @Composable
 fun BusScheduleListScreen(
     schedules: List<BusScheduleEntity>,
-    location: LocationData,
-    onAddSchedule: (
-        timestamp: Long,
-        route: String,
-        place: String,
-        seating: String?,
-        latitude: Double?,
-        longitude: Double?,
-        address: String?,
-        busType: String?,
-        busTier: String?,
-        busRating: Double?
-    ) -> Unit,
-    onSelectSchedule: (BusScheduleEntity) -> Unit
+    onSelectSchedule: (BusScheduleEntity) -> Unit,
+    onShowNewSchedule: () -> Unit
 ) {
-    var showNewScheduleSheet by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -70,7 +52,7 @@ fun BusScheduleListScreen(
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { showNewScheduleSheet = true },
+                onClick = onShowNewSchedule,
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
                 modifier = Modifier.padding(16.dp)
@@ -180,15 +162,6 @@ fun BusScheduleListScreen(
                     )
                 }
             }
-        }
-
-        if (showNewScheduleSheet) {
-            NewScheduleSheet(
-                location = location,
-                onDismiss = { showNewScheduleSheet = false },
-                onSave = onAddSchedule,
-                onNavigateToRouteSearch = {}
-            )
         }
     }
 }

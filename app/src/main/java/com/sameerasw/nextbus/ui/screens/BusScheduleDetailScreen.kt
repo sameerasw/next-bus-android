@@ -1,21 +1,18 @@
 package com.sameerasw.nextbus.ui.screens
 
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -33,31 +30,35 @@ fun BusScheduleDetailScreen(
     onBack: () -> Unit,
     onDelete: () -> Unit
 ) {
-    Scaffold(
-        topBar = {
-            CenterAlignedTopAppBar(
-                title = { Text("Schedule Details") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = {
-                    IconButton(onClick = onDelete) {
-                        Icon(Icons.Default.Delete, contentDescription = "Delete schedule", tint = MaterialTheme.colorScheme.error)
-                    }
-                }
-            )
-        },
-        contentWindowInsets = WindowInsets(0, 0, 0, 0)
-    ) { innerPadding ->
+    ModalBottomSheet(
+        onDismissRequest = onBack,
+        modifier = Modifier.fillMaxWidth()
+    ) {
         Column(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
+                .fillMaxWidth()
+                .padding(16.dp)
                 .verticalScroll(rememberScrollState())
-                .padding(12.dp)
+                .padding(bottom = 32.dp)
         ) {
+            // Header with title and delete button
+            androidx.compose.foundation.layout.Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp),
+                horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceBetween,
+                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+            ) {
+                Text(
+                    "Schedule Details",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold
+                )
+                IconButton(onClick = onDelete) {
+                    Icon(Icons.Default.Delete, contentDescription = "Delete schedule", tint = MaterialTheme.colorScheme.error)
+                }
+            }
+
             // Time Section
             DetailSection(title = "Time") {
                 Text(
@@ -125,6 +126,16 @@ fun BusScheduleDetailScreen(
                         DetailItem(label = "Rating", value = String.format("%.1f", bus.rating))
                     }
                 }
+            }
+
+            // Close button at bottom
+            Button(
+                onClick = onBack,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 16.dp)
+            ) {
+                Text("Close")
             }
         }
     }

@@ -56,6 +56,16 @@ class LocationManager(
             locationCallback!!,
             Looper.getMainLooper()
         )
+
+        // Also get last known location immediately
+        fusedLocationProviderClient.lastLocation.addOnSuccessListener { location ->
+            location?.let {
+                _locationState.value = _locationState.value.copy(
+                    latitude = it.latitude,
+                    longitude = it.longitude
+                )
+            }
+        }
     }
 
     fun stopLocationUpdates() {
