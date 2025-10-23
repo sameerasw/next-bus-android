@@ -91,14 +91,14 @@ fun NewScheduleSheet(
         androidx.compose.material3.Surface(
             modifier = Modifier
                 .fillMaxWidth(0.9f)
-                .padding(16.dp),
+                .padding(12.dp),
             shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
             color = MaterialTheme.colorScheme.surface
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp)
+                    .padding(12.dp)
                     .verticalScroll(rememberScrollState())
             ) {
                 // Header
@@ -258,14 +258,14 @@ private fun TimePickerDialog(
         androidx.compose.material3.Surface(
             modifier = Modifier
                 .fillMaxWidth(0.85f)
-                .padding(16.dp),
+                .padding(12.dp),
             shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
             color = MaterialTheme.colorScheme.surface
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(24.dp),
+                    .padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
@@ -301,8 +301,11 @@ private fun TimePickerField(
     minute: Int,
     onPickTime: () -> Unit
 ) {
+    val amPm = if (hour < 12) "AM" else "PM"
+    val displayHour = if (hour == 0) 12 else if (hour > 12) hour - 12 else hour
+
     OutlinedTextField(
-        value = String.format("%02d:%02d", hour, minute),
+        value = String.format("%02d:%02d %s", displayHour, minute, amPm),
         onValueChange = {},
         label = { Text("Time") },
         modifier = Modifier
