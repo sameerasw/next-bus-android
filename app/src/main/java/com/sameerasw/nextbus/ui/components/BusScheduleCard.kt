@@ -83,7 +83,7 @@ fun BusScheduleCard(
                     )
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = schedule.route,
+                            text = schedule.route + (if (!schedule.routeDirection) " (Flipped)" else ""),
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onSecondaryContainer,

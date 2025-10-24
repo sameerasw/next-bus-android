@@ -17,6 +17,7 @@ class BusScheduleViewModel(private val repository: BusScheduleRepository) : View
     fun addSchedule(
         timestamp: Long,
         route: String,
+        routeDirection: Boolean = true,
         place: String,
         seating: String?,
         latitude: Double?,
@@ -30,6 +31,7 @@ class BusScheduleViewModel(private val repository: BusScheduleRepository) : View
             val schedule = BusScheduleEntity(
                 timestamp = timestamp,
                 route = route,
+                routeDirection = routeDirection,
                 place = place,
                 seating = seating,
                 locationLat = latitude,

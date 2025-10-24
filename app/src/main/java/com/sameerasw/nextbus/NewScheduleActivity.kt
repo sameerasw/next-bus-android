@@ -52,6 +52,7 @@ import com.google.android.gms.location.LocationServices
 import com.sameerasw.nextbus.data.AppDatabase
 import com.sameerasw.nextbus.data.BusScheduleRepository
 import com.sameerasw.nextbus.data.RouteRepository
+import com.sameerasw.nextbus.data.RouteEntity
 import com.sameerasw.nextbus.location.LocationManager
 import com.sameerasw.nextbus.ui.BusScheduleViewModel
 import com.sameerasw.nextbus.ui.components.MapLocationPickerDialog
@@ -105,21 +106,26 @@ fun NewScheduleScreen(
         BusScheduleViewModel(repository)
     }
 
-    var routesList by remember { mutableStateOf<List<String>>(emptyList()) }
-    var lastUsedRoute by remember { mutableStateOf("") }
+    var routesList by remember { mutableStateOf<List<RouteEntity>>(emptyList()) }
+    var lastUsedRoute by remember { mutableStateOf<Pair<String, Pair<String, String>>?>(null) }
 
     // Load routes from database and last used route
     LaunchedEffect(Unit) {
         // Load routes
         routeRepository.getAllRoutes().collect { routes ->
-            routesList = routes.map { it.name }
+            routesList = routes
         }
     }
 
     // Load last used route from preferences
     LaunchedEffect(Unit) {
         val sharedPref = activity.getSharedPreferences("bus_schedule_prefs", android.content.Context.MODE_PRIVATE)
-        lastUsedRoute = sharedPref.getString("last_route", "") ?: ""
+        val lastRouteNumber = sharedPref.getString("last_route_number", "") ?: ""
+        val lastRouteStart = sharedPref.getString("last_route_start", "") ?: ""
+        val lastRouteEnd = sharedPref.getString("last_route_end", "") ?: ""
+        if (lastRouteNumber.isNotEmpty() && lastRouteStart.isNotEmpty() && lastRouteEnd.isNotEmpty()) {
+            lastUsedRoute = Pair(lastRouteNumber, Pair(lastRouteStart, lastRouteEnd))
+        }
     }
 
     val fusedLocationProviderClient = remember {
@@ -137,7 +143,10 @@ fun NewScheduleScreen(
         initialMinute = calendar.get(Calendar.MINUTE)
     )
 
-    var route by remember { mutableStateOf(lastUsedRoute) }
+    var routeNumber by remember { mutableStateOf(lastUsedRoute?.first ?: "") }
+    var routeStart by remember { mutableStateOf(lastUsedRoute?.second?.first ?: "") }
+    var routeEnd by remember { mutableStateOf(lastUsedRoute?.second?.second ?: "") }
+    var routeDirection by remember { mutableStateOf(true) }
     var place by remember { mutableStateOf(location.address ?: "") }
     var selectedLatitude by remember { mutableStateOf(location.latitude) }
     var selectedLongitude by remember { mutableStateOf(location.longitude) }
@@ -219,18 +228,55 @@ fun NewScheduleScreen(
                 modifier = Modifier.padding(top = 12.dp, bottom = 6.dp)
             )
             OutlinedTextField(
-                value = route,
-                onValueChange = { route = it },
-                label = { Text("Select Route or Enter Custom") },
+                value = routeNumber,
+                onValueChange = { routeNumber = it },
+                label = { Text("Route Number") },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 6.dp),
+                singleLine = true
+            )
+
+            OutlinedTextField(
+                value = routeStart,
+                onValueChange = { routeStart = it },
+                label = { Text("From (Start Location)") },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 6.dp),
+                singleLine = true
+            )
+
+            OutlinedTextField(
+                value = routeEnd,
+                onValueChange = { routeEnd = it },
+                label = { Text("To (End Location)") },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 6.dp),
+                singleLine = true
+            )
+
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 8.dp),
-                trailingIcon = {
-                    Button(onClick = { showRouteSearch = true }, modifier = Modifier.padding(4.dp)) {
-                        Text("Browse", style = MaterialTheme.typography.labelSmall)
-                    }
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Button(
+                    onClick = { showRouteSearch = true },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("Browse Routes", style = MaterialTheme.typography.labelSmall)
                 }
-            )
+                Button(
+                    onClick = { routeDirection = !routeDirection },
+                    modifier = Modifier.weight(1f),
+                    enabled = routeNumber.isNotEmpty() && routeStart.isNotEmpty() && routeEnd.isNotEmpty()
+                ) {
+                    Text(if (routeDirection) "Normal" else "Flipped", style = MaterialTheme.typography.labelSmall)
+                }
+            }
 
             // Pickup Location
             Text(
@@ -329,7 +375,7 @@ fun NewScheduleScreen(
             // Save Button
             Button(
                 onClick = {
-                    if (route.isNotEmpty() && place.isNotEmpty()) {
+                    if (routeNumber.isNotEmpty() && routeStart.isNotEmpty() && routeEnd.isNotEmpty() && place.isNotEmpty()) {
                         val cal = Calendar.getInstance()
                         cal.set(Calendar.HOUR_OF_DAY, timePickerState.hour)
                         cal.set(Calendar.MINUTE, timePickerState.minute)
@@ -338,9 +384,13 @@ fun NewScheduleScreen(
                         // Extract tier code from display text
                         val tierCode = extractTierCode(selectedTier)
 
+                        // Create route string from three parts
+                        val routeString = "$routeNumber - $routeStart → $routeEnd"
+
                         viewModel.addSchedule(
                             cal.timeInMillis,
-                            route,
+                            routeString,
+                            true, // routeDirection (default true for new schedules)
                             place,
                             selectedSeating,
                             selectedLatitude,
@@ -351,9 +401,14 @@ fun NewScheduleScreen(
                             busRating.toDoubleOrNull()
                         )
 
-                        // Save last used route
+                        // Save last used route (all three parts)
                         val sharedPref = activity.getSharedPreferences("bus_schedule_prefs", android.content.Context.MODE_PRIVATE)
-                        sharedPref.edit().putString("last_route", route).apply()
+                        sharedPref.edit().apply {
+                            putString("last_route_number", routeNumber)
+                            putString("last_route_start", routeStart)
+                            putString("last_route_end", routeEnd)
+                            apply()
+                        }
 
                         activity.finish()
                     }
@@ -361,7 +416,7 @@ fun NewScheduleScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 16.dp),
-                enabled = route.isNotEmpty() && place.isNotEmpty()
+                enabled = routeNumber.isNotEmpty() && routeStart.isNotEmpty() && routeEnd.isNotEmpty() && place.isNotEmpty()
             ) {
                 Text("Create Schedule")
             }
@@ -373,8 +428,11 @@ fun NewScheduleScreen(
         RouteSearchScreenDialog(
             routes = routesList,
             routeRepository = routeRepository,
-            onSelectRoute = { selectedRoute ->
-                route = selectedRoute
+            onSelectRoute = { number, start, end ->
+                routeNumber = number
+                routeStart = start
+                routeEnd = end
+                routeDirection = true
                 showRouteSearch = false
             },
             onBack = { showRouteSearch = false },
@@ -386,8 +444,11 @@ fun NewScheduleScreen(
     if (showCustomRouteInput) {
         CustomRouteInputDialog(
             routeRepository = routeRepository,
-            onSave = { customRoute ->
-                route = customRoute
+            onSave = { number, start, end ->
+                routeNumber = number
+                routeStart = start
+                routeEnd = end
+                routeDirection = true
                 showCustomRouteInput = false
                 showRouteSearch = false
             },
@@ -415,9 +476,9 @@ fun NewScheduleScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RouteSearchScreenDialog(
-    routes: List<String>,
+    routes: List<RouteEntity>,
     routeRepository: RouteRepository,
-    onSelectRoute: (String) -> Unit,
+    onSelectRoute: (String, String, String) -> Unit,
     onBack: () -> Unit,
     onShowCustomInput: () -> Unit = {}
 ) {
@@ -426,7 +487,11 @@ fun RouteSearchScreenDialog(
     val filteredRoutes = if (searchQuery.isEmpty()) {
         routes
     } else {
-        routes.filter { it.contains(searchQuery, ignoreCase = true) }
+        routes.filter {
+            it.routeNumber.contains(searchQuery, ignoreCase = true) ||
+            it.start.contains(searchQuery, ignoreCase = true) ||
+            it.end.contains(searchQuery, ignoreCase = true)
+        }
     }
 
     Dialog(
@@ -476,7 +541,7 @@ fun RouteSearchScreenDialog(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable {
-                                    onSelectRoute(route)
+                                    onSelectRoute(route.routeNumber, route.start, route.end)
                                     onBack()
                                 }
                                 .padding(8.dp),
@@ -484,15 +549,14 @@ fun RouteSearchScreenDialog(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                route,
+                                route.getDisplayName(),
                                 modifier = Modifier.weight(1f),
                                 style = MaterialTheme.typography.bodyMedium
                             )
                             IconButton(
                                 onClick = {
-                                    val routeEntity = com.sameerasw.nextbus.data.RouteEntity(name = route)
                                     kotlinx.coroutines.MainScope().launch {
-                                        routeRepository.deleteRoute(routeEntity)
+                                        routeRepository.deleteRoute(route)
                                     }
                                 },
                                 modifier = Modifier.size(24.dp)
@@ -523,10 +587,12 @@ fun RouteSearchScreenDialog(
 @Composable
 private fun CustomRouteInputDialog(
     routeRepository: RouteRepository,
-    onSave: (String) -> Unit,
+    onSave: (String, String, String) -> Unit,
     onDismiss: () -> Unit
 ) {
-    var customRoute by remember { mutableStateOf("") }
+    var routeNumber by remember { mutableStateOf("") }
+    var routeStart by remember { mutableStateOf("") }
+    var routeEnd by remember { mutableStateOf("") }
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -553,9 +619,29 @@ private fun CustomRouteInputDialog(
                 )
 
                 OutlinedTextField(
-                    value = customRoute,
-                    onValueChange = { customRoute = it },
-                    label = { Text("Route (e.g., Colombo → Kandy)") },
+                    value = routeNumber,
+                    onValueChange = { routeNumber = it },
+                    label = { Text("Route Number (e.g., 10A)") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 12.dp),
+                    singleLine = true
+                )
+
+                OutlinedTextField(
+                    value = routeStart,
+                    onValueChange = { routeStart = it },
+                    label = { Text("From (Start Location)") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 12.dp),
+                    singleLine = true
+                )
+
+                OutlinedTextField(
+                    value = routeEnd,
+                    onValueChange = { routeEnd = it },
+                    label = { Text("To (End Location)") },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(bottom = 16.dp),
@@ -573,15 +659,15 @@ private fun CustomRouteInputDialog(
                     }
                     Button(
                         onClick = {
-                            if (customRoute.isNotEmpty()) {
+                            if (routeNumber.isNotEmpty() && routeStart.isNotEmpty() && routeEnd.isNotEmpty()) {
                                 kotlinx.coroutines.MainScope().launch {
-                                    routeRepository.addRoute(customRoute)
-                                    onSave(customRoute)
+                                    routeRepository.addRoute(routeNumber, routeStart, routeEnd)
+                                    onSave(routeNumber, routeStart, routeEnd)
                                 }
                             }
                         },
                         modifier = Modifier.padding(start = 8.dp),
-                        enabled = customRoute.isNotEmpty()
+                        enabled = routeNumber.isNotEmpty() && routeStart.isNotEmpty() && routeEnd.isNotEmpty()
                     ) {
                         Text("Add Route")
                     }

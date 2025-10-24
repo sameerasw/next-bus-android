@@ -48,6 +48,7 @@ fun NewScheduleSheet(
     onSave: (
         timestamp: Long,
         route: String,
+        routeDirection: Boolean,
         place: String,
         seating: String?,
         latitude: Double?,
@@ -65,7 +66,10 @@ fun NewScheduleSheet(
         initialMinute = calendar.get(Calendar.MINUTE)
     )
 
-    var route by remember { mutableStateOf("") }
+    var routeNumber by remember { mutableStateOf("") }
+    var routeStart by remember { mutableStateOf("") }
+    var routeEnd by remember { mutableStateOf("") }
+    var routeDirection by remember { mutableStateOf(true) }
     var place by remember { mutableStateOf(location.address ?: "") }
     var selectedLatitude by remember { mutableStateOf(location.latitude) }
     var selectedLongitude by remember { mutableStateOf(location.longitude) }
@@ -81,8 +85,11 @@ fun NewScheduleSheet(
 
     if (showRouteSearch) {
         RouteSearchScreen(
-            onSelectRoute = { selectedRoute ->
-                route = selectedRoute
+            onSelectRoute = { number, start, end ->
+                routeNumber = number
+                routeStart = start
+                routeEnd = end
+                routeDirection = true
                 showRouteSearch = false
                 onNavigateToRouteSearch()
             },
@@ -94,8 +101,11 @@ fun NewScheduleSheet(
 
     if (showCustomRouteInput) {
         CustomRouteInputDialog(
-            onSave = { customRoute ->
-                route = customRoute
+            onSave = { number, start, end ->
+                routeNumber = number
+                routeStart = start
+                routeEnd = end
+                routeDirection = true
                 showCustomRouteInput = false
             },
             onDismiss = { showCustomRouteInput = false }
@@ -147,19 +157,61 @@ fun NewScheduleSheet(
 
             // Route Selection
             SectionTitle("Route")
+
+            // Route Number
             OutlinedTextField(
-                value = route,
-                onValueChange = { route = it },
-                label = { Text("Select Route or Enter Custom") },
+                value = routeNumber,
+                onValueChange = { routeNumber = it },
+                label = { Text("Route Number") },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 6.dp),
+                singleLine = true
+            )
+
+            // Route Start
+            OutlinedTextField(
+                value = routeStart,
+                onValueChange = { routeStart = it },
+                label = { Text("From (Start Location)") },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 6.dp),
+                singleLine = true
+            )
+
+            // Route End
+            OutlinedTextField(
+                value = routeEnd,
+                onValueChange = { routeEnd = it },
+                label = { Text("To (End Location)") },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 6.dp),
+                singleLine = true
+            )
+
+            // Browse and Flip buttons
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 8.dp),
-                trailingIcon = {
-                    Button(onClick = { showRouteSearch = true }, modifier = Modifier.padding(4.dp)) {
-                        Text("Browse", style = MaterialTheme.typography.labelSmall)
-                    }
+                horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)
+            ) {
+                Button(
+                    onClick = { showRouteSearch = true },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("Browse Routes", style = MaterialTheme.typography.labelSmall)
                 }
-            )
+                Button(
+                    onClick = { routeDirection = !routeDirection },
+                    modifier = Modifier.weight(1f),
+                    enabled = routeNumber.isNotEmpty() && routeStart.isNotEmpty() && routeEnd.isNotEmpty()
+                ) {
+                    Text(if (routeDirection) "Normal" else "Flipped", style = MaterialTheme.typography.labelSmall)
+                }
+            }
 
             // Pickup Location
             SectionTitle("Pickup Location")
@@ -243,15 +295,19 @@ fun NewScheduleSheet(
             // Save Button
             Button(
                 onClick = {
-                    if (route.isNotEmpty() && place.isNotEmpty()) {
+                    if (routeNumber.isNotEmpty() && routeStart.isNotEmpty() && routeEnd.isNotEmpty() && place.isNotEmpty()) {
                         val cal = Calendar.getInstance()
                         cal.set(Calendar.HOUR_OF_DAY, timePickerState.hour)
                         cal.set(Calendar.MINUTE, timePickerState.minute)
                         cal.set(Calendar.SECOND, 0)
 
+                        // Create route string from three parts
+                        val routeString = "$routeNumber - $routeStart → $routeEnd"
+
                         onSave(
                             cal.timeInMillis,
-                            route,
+                            routeString,
+                            routeDirection,
                             place,
                             selectedSeating,
                             selectedLatitude,
@@ -267,7 +323,7 @@ fun NewScheduleSheet(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 12.dp),
-                enabled = route.isNotEmpty() && place.isNotEmpty()
+                enabled = routeNumber.isNotEmpty() && routeStart.isNotEmpty() && routeEnd.isNotEmpty() && place.isNotEmpty()
             ) {
                 Text("Create Schedule")
             }
@@ -422,10 +478,12 @@ private fun SectionTitle(title: String) {
 
 @Composable
 private fun CustomRouteInputDialog(
-    onSave: (String) -> Unit,
+    onSave: (String, String, String) -> Unit,
     onDismiss: () -> Unit
 ) {
-    var customRoute by remember { mutableStateOf("") }
+    var routeNumber by remember { mutableStateOf("") }
+    var routeStart by remember { mutableStateOf("") }
+    var routeEnd by remember { mutableStateOf("") }
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -452,9 +510,29 @@ private fun CustomRouteInputDialog(
                 )
 
                 OutlinedTextField(
-                    value = customRoute,
-                    onValueChange = { customRoute = it },
-                    label = { Text("Route (e.g., Colombo → Kandy)") },
+                    value = routeNumber,
+                    onValueChange = { routeNumber = it },
+                    label = { Text("Route Number (e.g., 10A)") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 12.dp),
+                    singleLine = true
+                )
+
+                OutlinedTextField(
+                    value = routeStart,
+                    onValueChange = { routeStart = it },
+                    label = { Text("From (Start Location)") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 12.dp),
+                    singleLine = true
+                )
+
+                OutlinedTextField(
+                    value = routeEnd,
+                    onValueChange = { routeEnd = it },
+                    label = { Text("To (End Location)") },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(bottom = 16.dp),
@@ -472,12 +550,12 @@ private fun CustomRouteInputDialog(
                     }
                     Button(
                         onClick = {
-                            if (customRoute.isNotEmpty()) {
-                                onSave(customRoute)
+                            if (routeNumber.isNotEmpty() && routeStart.isNotEmpty() && routeEnd.isNotEmpty()) {
+                                onSave(routeNumber, routeStart, routeEnd)
                             }
                         },
                         modifier = Modifier.padding(start = 8.dp),
-                        enabled = customRoute.isNotEmpty()
+                        enabled = routeNumber.isNotEmpty() && routeStart.isNotEmpty() && routeEnd.isNotEmpty()
                     ) {
                         Text("Add Route")
                     }
@@ -487,4 +565,67 @@ private fun CustomRouteInputDialog(
     }
 }
 
+private fun extractTierCode(tier: String): String {
+    return when (tier) {
+        "Normal (x1)" -> "normal"
+        "Semi-Luxury (x1.5)" -> "semi_luxury"
+        "Luxury (x2)" -> "luxury"
+        "Express (x4)" -> "express"
+        else -> "normal"
+    }
+}
 
+@Composable
+private fun RouteSearchScreen(
+    onSelectRoute: (String, String, String) -> Unit,
+    onBack: () -> Unit,
+    onShowCustomInput: () -> Unit = {}
+) {
+    Dialog(
+        onDismissRequest = onBack,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        androidx.compose.material3.Surface(
+            modifier = Modifier
+                .fillMaxWidth(0.95f)
+                .padding(16.dp),
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+            color = MaterialTheme.colorScheme.surface
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Add or Browse Route",
+                        style = MaterialTheme.typography.headlineSmall
+                    )
+                    IconButton(onClick = onShowCustomInput) {
+                        Text("+", style = MaterialTheme.typography.headlineSmall)
+                    }
+                }
+
+                Text(
+                    text = "Note: Create a custom route to add it to the database.",
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
+
+                TextButton(
+                    onClick = onBack,
+                    modifier = Modifier
+                        .align(Alignment.End)
+                        .padding(top = 8.dp)
+                ) {
+                    Text("Close")
+                }
+            }
+        }
+    }
+}

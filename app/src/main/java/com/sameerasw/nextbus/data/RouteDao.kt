@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface RouteDao {
-    @Query("SELECT * FROM routes ORDER BY name ASC")
+    @Query("SELECT * FROM routes ORDER BY routeNumber ASC")
     fun getAllRoutes(): Flow<List<RouteEntity>>
 
     @Insert
@@ -17,7 +17,7 @@ interface RouteDao {
     @Delete
     suspend fun deleteRoute(route: RouteEntity)
 
-    @Query("SELECT * FROM routes WHERE name = :routeName LIMIT 1")
-    suspend fun getRouteByName(routeName: String): RouteEntity?
+    @Query("SELECT * FROM routes WHERE routeNumber = :routeNumber AND start = :start AND end = :end LIMIT 1")
+    suspend fun getRouteByDetails(routeNumber: String, start: String, end: String): RouteEntity?
 }
 

@@ -9,6 +9,7 @@ data class BusScheduleEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val timestamp: Long, // epoch millis
     val route: String,
+    val routeDirection: Boolean = true, // true = normal, false = flipped
     val place: String,
     val seating: String?, // "Available", "Almost full", "Full", "Loaded"
     val locationLat: Double?,
