@@ -82,8 +82,9 @@ fun BusScheduleCard(
                         tint = MaterialTheme.colorScheme.onSecondaryContainer
                     )
                     Column(modifier = Modifier.weight(1f)) {
+                        // Display route directly - it's already in the correct order (swapped if needed during creation)
                         Text(
-                            text = schedule.route + (if (!schedule.routeDirection) " (Flipped)" else ""),
+                            text = schedule.route,
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onSecondaryContainer,
@@ -200,3 +201,4 @@ private fun getTierName(tier: String?): String {
         else -> tier
     }
 }
+

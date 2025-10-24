@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.LocationOn
@@ -213,6 +214,51 @@ fun NewScheduleSheet(
                 }
             }
 
+            // Route Preview with direction indicator
+            if (routeNumber.isNotEmpty() && routeStart.isNotEmpty() && routeEnd.isNotEmpty()) {
+                val displayStart = if (routeDirection) routeStart else routeEnd
+                val displayEnd = if (routeDirection) routeEnd else routeStart
+
+                androidx.compose.material3.Surface(
+                    color = MaterialTheme.colorScheme.secondaryContainer,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = routeNumber,
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
+                            Text(
+                                text = "$displayStart → $displayEnd",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f),
+                                modifier = Modifier.padding(top = 4.dp)
+                            )
+                        }
+                        androidx.compose.material3.Badge(
+                            modifier = Modifier.align(Alignment.Top)
+                        ) {
+                            Text(
+                                text = if (routeDirection) "Normal" else "Flipped",
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                        }
+                    }
+                }
+            }
+
             // Pickup Location
             SectionTitle("Pickup Location")
             OutlinedTextField(
@@ -301,13 +347,15 @@ fun NewScheduleSheet(
                         cal.set(Calendar.MINUTE, timePickerState.minute)
                         cal.set(Calendar.SECOND, 0)
 
-                        // Create route string from three parts
-                        val routeString = "$routeNumber - $routeStart → $routeEnd"
+                        // Create route string - if flipped, swap the start and end
+                        val displayStart = if (routeDirection) routeStart else routeEnd
+                        val displayEnd = if (routeDirection) routeEnd else routeStart
+                        val routeString = "$routeNumber - $displayStart → $displayEnd"
 
                         onSave(
                             cal.timeInMillis,
                             routeString,
-                            routeDirection,
+                            true, // Always save as true (normal) since we've already swapped the cities in the string
                             place,
                             selectedSeating,
                             selectedLatitude,
