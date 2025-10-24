@@ -227,35 +227,6 @@ fun NewScheduleScreen(
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.padding(top = 12.dp, bottom = 6.dp)
             )
-            OutlinedTextField(
-                value = routeNumber,
-                onValueChange = { routeNumber = it },
-                label = { Text("Route Number") },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 6.dp),
-                singleLine = true
-            )
-
-            OutlinedTextField(
-                value = routeStart,
-                onValueChange = { routeStart = it },
-                label = { Text("From (Start Location)") },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 6.dp),
-                singleLine = true
-            )
-
-            OutlinedTextField(
-                value = routeEnd,
-                onValueChange = { routeEnd = it },
-                label = { Text("To (End Location)") },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 6.dp),
-                singleLine = true
-            )
 
             Row(
                 modifier = Modifier

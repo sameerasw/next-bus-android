@@ -159,39 +159,6 @@ fun NewScheduleSheet(
             // Route Selection
             SectionTitle("Route")
 
-            // Route Number
-            OutlinedTextField(
-                value = routeNumber,
-                onValueChange = { routeNumber = it },
-                label = { Text("Route Number") },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 6.dp),
-                singleLine = true
-            )
-
-            // Route Start
-            OutlinedTextField(
-                value = routeStart,
-                onValueChange = { routeStart = it },
-                label = { Text("From (Start Location)") },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 6.dp),
-                singleLine = true
-            )
-
-            // Route End
-            OutlinedTextField(
-                value = routeEnd,
-                onValueChange = { routeEnd = it },
-                label = { Text("To (End Location)") },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 6.dp),
-                singleLine = true
-            )
-
             // Browse and Flip buttons
             Row(
                 modifier = Modifier
